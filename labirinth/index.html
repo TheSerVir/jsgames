@@ -1,0 +1,237 @@
+﻿<!DOCTYPE html>
+<head>
+<title>Волновой алгоритм - Лабиринт</title>
+<script type="text/javascript" src="./jquery-1.11.2.js"></script>
+<script type="text/javascript" src="./jquery-ui.js"></script>
+<script type="text/javascript">
+$(function () {
+
+	function canGo(matrix) {
+		for(var i = 1; i<=10; i++) 
+			for(var j = 1; j<=10; j++)	
+				if(matrix[i][j]>=0) {
+					var a = i;
+					var b = j;
+					if(a+1<=10) if(matrix[a+1][b]==-1) return true;
+					if(a-1>0) if(matrix[a-1][b]==-1) return true;
+					if(b+1<=10) if(matrix[a][b+1]==-1) return true;
+					if(b-1>0) if(matrix[a][b-1]==-1) return true;				
+				} 
+		return false;
+	}
+	
+	function findByNumber(n, matrix) {
+		res = [];
+		for(var i = 1; i<=10; i++)  {
+			for(var j = 1; j<=10; j++)	
+				if(matrix[i][j]==n) res[res.length] = [i,j];
+		}
+		return res;
+	}
+	
+	function equals_arr(arr1,arr2) {
+		if(arr1.length == arr2.length) {
+			for(var i = 0; i<arr1.length; i++)
+				if(arr1[i][0] != arr2[i][0] | arr1[i][1] != arr2[i][1]) return false;
+		} else return false;
+		return true;
+	}
+	
+	function findWay(sx, sy, fx, fy) {
+		var matrix = [];
+		for(var i = 1; i<=10; i++) {
+			matrix[i] = [];
+			for(var j = 1; j<=10; j++) {
+				if($('#p'+i+'_'+j).css("background-color") == "rgb(18, 52, 86)") matrix[i][j] = -2;
+				else matrix[i][j] = -1;
+			}
+		}
+		matrix[sx][sy] = 0;
+		/* Распространение волны */
+		var vars;
+		var d = 0;
+		do {
+			vars = findByNumber(d, matrix);
+			for(var i = 0; i<vars.length; i++) {
+				var a = vars[i][0];
+				var b = vars[i][1];
+				if(a+1<=10) if(matrix[a+1][b]==-1) matrix[a+1][b]=d+1;
+				if(a-1>0) if(matrix[a-1][b]==-1) matrix[a-1][b]=d+1;
+				if(b+1<=10) if(matrix[a][b+1]==-1) matrix[a][b+1]=d+1;
+				if(b-1>0) if(matrix[a][b-1]==-1) matrix[a][b-1]=d+1;
+			}
+			d = d + 1;
+		} while(matrix[fx][fy] == -1 & canGo(matrix));
+		/* Восстановление пути */
+		if(matrix[fx][fy]!=-1) {
+			d = matrix[fx][fy];
+			c = matrix[fx][fy];
+			way = [];
+			a = fx;
+			b = fy;
+			while(d>1) {
+				if(a+1<=10) if(matrix[a+1][b]==d-1) way[c-d]=[a+1,b];
+				if(a-1>0) if(matrix[a-1][b]==d-1) way[c-d]=[a-1,b];
+				if(b+1<=10) if(matrix[a][b+1]==d-1) way[c-d]=[a,b+1];
+				if(b-1>0) if(matrix[a][b-1]==d-1) way[c-d]=[a,b-1];
+				a = way[c-d][0];
+				b = way[c-d][1];
+				d=d-1;
+			}
+			return way;
+		} else return [];
+	}
+	
+	function wayCleaner() {
+		$("#field td").each(function () {
+			$("#field td").each(function () {
+				$(this).stop();
+			});
+			if($(this).css("background-color") != "rgb(18, 52, 86)" & $(this).css("background-color") != "rgb(51, 181, 229)" & $(this).css("background-color") != "rgb(153, 204, 0)") $(this).css("background-color","#fff");
+		});
+	}
+	
+	var marker = "none";
+	$("#wa").css("background-color","#123456").css("color","#fff");
+	var start_id = "";
+	var finish_id = "";
+	var start = true;
+	var lastway = [];
+	$("#start").click(function () {
+		if(start) {
+			$("#name_of_game").hide();
+			var table = '<table id="field">\n';
+			for(var i = 1; i<=10; i++) {
+				table = table + '<tr>\n';
+				for(var j = 1; j<=10; j++)
+					table = table + '<td id="p'+i+'_'+j+'"></td>\n';
+				table = table + '</tr>\n';
+			}
+			var table = table + '</table>\n';
+			$("#cpanel").after(table);
+			$("#field td").mousedown(function () {
+				if(marker=="none") {
+					if($(this).css("background-color")=="rgb(18, 52, 86)") $(this).css("background-color","#fff");
+					else $(this).css("background-color","#123456");
+					if($(this).attr("id") == start_id) start_id = "";
+					if($(this).attr("id") == finish_id) finish_id = "";
+				} else if(marker=="start") {
+					$("#"+start_id).css("background-color","#fff");
+					$(this).css("background-color","#33B5E5");
+					start_id = $(this).attr("id");
+					console.log($(this).css("background-color"));
+				} else if(marker == "finish") {
+					$("#"+finish_id).css("background-color","#fff");
+					$(this).css("background-color","#99CC00");
+					finish_id = $(this).attr("id");		
+					console.log($(this).css("background-color"));					
+				}
+				if(finish_id != "" & start_id != "") {
+					var st = start_id.substr(1).split('_');
+					var fn = finish_id.substr(1).split('_');
+					var way = findWay(parseInt(st[0]),parseInt(st[1]),parseInt(fn[0]),parseInt(fn[1]));
+					if(way.length == 0) {
+						wayCleaner()
+						alert("Пути нет :(");
+					} else
+					if(!equals_arr(way,lastway)) {
+						wayCleaner()
+						for(var i = way.length-1; i>=0; i--) {
+							$("#p"+way[i][0]+"_"+way[i][1]).animate({ backgroundColor: "#FFBB33" }, 1000-(1000/(way.length-1))*i);
+						}
+					}
+					lastway = way;
+				}
+			});
+			start = false;
+		} else alert("Вы уже начали :)");
+	});
+	
+	$("#st").click(function () {
+		marker = "start";
+		$(".link").css("background-color","");
+		$(".link").css("color","");
+		$(this).css("background-color","#33B5E5").css("color","#fff");
+	});
+	
+	$("#wa").click(function () {
+		marker = "none";
+		$(".link").css("background-color","");
+		$(".link").css("color","");
+		$(this).css("background-color","#123456").css("color","#fff");
+	});
+	
+	$("#fn").click(function () {
+		marker = "finish";
+		$(".link").css("background-color","");
+		$(".link").css("color","");
+		$(this).css("background-color","#99CC00").css("color","#fff");
+	});
+	
+	$("#clean").click(function () {
+		$("#field td").each(function () {
+			$(this).each(function () {
+				$(this).css("background-color","#fff");
+				start_id = "";
+				finish_id = "";
+			});
+		});
+	});
+});
+</script>
+<style type="text/css">
+	body {
+		margin:0;
+		padding:0;
+	}
+
+	#cpanel {
+		width:100%;
+		height:50px;
+		background-color:#000;
+		color:#fff;
+		text-align:center;
+		padding-top:9px;
+		box-sizing:border-box;
+		font-size:20pt;
+		font-family:Calibri;
+		margin-bottom:20px;
+	}
+	
+	#cpanel .link {
+		padding:5px;
+	}
+	
+	#cpanel .link:hover {
+		cursor:pointer;
+		background-color:yellow;
+		color:#000;
+	}
+
+	#field {
+		border:1px solid #000;
+		height:800px;
+		width:800px;
+		margin:0 auto;
+		border-spacing: 0px;
+		border-collapse: separate;
+	}
+
+	#field td {
+		border:1px solid #000;
+	}
+	
+	#name_of_game {
+		width:1000px;
+		margin:50px auto;
+		text-align:center;
+		font-size:100px;
+		line-height:0.5;
+	}
+</style>
+</head>
+<body>
+	<div id="cpanel"><span class="link" id="start">Старт</span> | <span style="color:#FFBB33;">&nbspМаркеры:&nbsp</span> <span class="link" id="st">Начало</span> <span class="link" id="wa">Стены</span> <span class="link" id="fn">Конец</span>  | <span class="link" id="clean">Очистить поле</span></div>
+	<div id="name_of_game">"Лабиринт"<br/><span style="font-size:35px; font-family:Calibri;">нажмите "Старт", чтобы начать</span></div>
+</body>
+</html>
